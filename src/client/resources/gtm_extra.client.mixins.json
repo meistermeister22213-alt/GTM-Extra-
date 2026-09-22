@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "de.gtmextra.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraAccessor",
+    "EntityOutlineMixin",
+    "PlayerEntityRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

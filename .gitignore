@@ -1,0 +1,14 @@
+# Gradle
+.gradle/
+build/
+
+# Fabric development instance
+run/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
