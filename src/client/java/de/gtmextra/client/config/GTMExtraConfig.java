@@ -24,6 +24,9 @@ public final class GTMExtraConfig {
     private static boolean sneakAnimationEnabled = true;
     private static boolean outlineHighlighterEnabled;
     private static int outlineColor = 0xFF0095;
+    private static boolean itemGlowEnabled;
+    private static int itemGlowColor = 0xFF8C00;
+    private static boolean itemGlowColorSelected;
 
     private GTMExtraConfig() {
     }
@@ -39,6 +42,9 @@ public final class GTMExtraConfig {
             sneakAnimationEnabled = getBoolean(root, "sneakAnimationEnabled", true);
             outlineHighlighterEnabled = getBoolean(root, "outlineHighlighterEnabled", false);
             outlineColor = getColor(root, "outlineColor", outlineColor);
+            itemGlowEnabled = getBoolean(root, "itemGlowEnabled", false);
+            itemGlowColor = getColor(root, "itemGlowColor", itemGlowColor);
+            itemGlowColorSelected = getBoolean(root, "itemGlowColorSelected", false);
         } catch (Exception exception) {
             GTMExtra.LOGGER.warn("Could not read GTM Extra's client configuration", exception);
         }
@@ -71,11 +77,41 @@ public final class GTMExtraConfig {
         save();
     }
 
+    public static boolean isItemGlowEnabled() {
+        return itemGlowEnabled;
+    }
+
+    public static void setItemGlowEnabled(boolean enabled) {
+        itemGlowEnabled = enabled;
+        save();
+    }
+
+    public static int getItemGlowColor() {
+        return itemGlowColor;
+    }
+
+    public static void setItemGlowColor(int rgb) {
+        itemGlowColor = rgb & 0xFFFFFF;
+        save();
+    }
+
+    public static boolean isItemGlowColorSelected() {
+        return itemGlowColorSelected;
+    }
+
+    public static void setItemGlowColorSelected(boolean selected) {
+        itemGlowColorSelected = selected;
+        save();
+    }
+
     public static void save() {
         JsonObject root = new JsonObject();
         root.addProperty("sneakAnimationEnabled", sneakAnimationEnabled);
         root.addProperty("outlineHighlighterEnabled", outlineHighlighterEnabled);
         root.addProperty("outlineColor", String.format("#%06X", outlineColor));
+        root.addProperty("itemGlowEnabled", itemGlowEnabled);
+        root.addProperty("itemGlowColor", String.format("#%06X", itemGlowColor));
+        root.addProperty("itemGlowColorSelected", itemGlowColorSelected);
 
         Path temporaryFile = FILE.resolveSibling(FILE.getFileName() + ".tmp");
         try {

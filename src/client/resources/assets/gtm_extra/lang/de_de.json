@@ -1,9 +1,14 @@
 {
-  "gtm_extra.config.title": "GTM Extra Settings",
-  "gtm_extra.config.sneak": "Sneak Animation: %s",
-  "gtm_extra.config.sneak.description": "Shows the crouching model pose while the local player is flying and sneaking.",
+  "gtm_extra.config.title": "GTM Extra Einstellungen",
+  "gtm_extra.config.sneak": "Schleich-Animation: %s",
+  "gtm_extra.config.sneak.description": "Zeigt die geduckte Pose, wenn der lokale Spieler fliegt und schleicht.",
   "gtm_extra.config.outline": "Outline Highlighter [Experimental]: %s",
-  "gtm_extra.config.outline.description": "Experimental. The outline is hidden if any block lies between the camera and player.",
-  "gtm_extra.config.color": "Outline color",
-  "gtm_extra.config.hex": "Hex color"
+  "gtm_extra.config.outline.description": "Experimentell. Die Umrandung wird durch Blöcke verdeckt.",
+  "gtm_extra.config.item_glow": "Item Glow [Experimental]: %s",
+  "gtm_extra.config.item_glow.description": "Hebt ausgewählte Items nur hervor, wenn kein Block die Sicht versperrt.",
+  "gtm_extra.config.item_glow.short": "Item Glow",
+  "gtm_extra.config.outline.short": "Outline Highlighter",
+  "gtm_extra.config.color_target": "Farbe: %s",
+  "gtm_extra.config.color": "Farbe",
+  "gtm_extra.config.hex": "Hex-Farbe"
 }

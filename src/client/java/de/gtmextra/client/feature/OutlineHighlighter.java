@@ -25,8 +25,17 @@ public final class OutlineHighlighter {
             return false;
         }
 
+        return hasClearLineOfSight(entity);
+    }
+
+    /** Uses the same block-occluded camera ray for other client highlighting features. */
+    public static boolean hasClearLineOfSight(Entity entity) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null || entity.getEntityWorld() != client.world || client.getCameraEntity() == null) {
+            return false;
+        }
         Vec3d camera = ((CameraAccessor) client.gameRenderer.getCamera()).gtmExtra$getPosition();
-        Vec3d target = player.getBoundingBox().getCenter();
+        Vec3d target = entity.getBoundingBox().getCenter();
         return !crossesBlock(client, camera, target);
     }
 

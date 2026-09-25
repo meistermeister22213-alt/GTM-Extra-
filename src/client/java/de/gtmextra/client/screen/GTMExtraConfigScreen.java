@@ -19,7 +19,10 @@ public final class GTMExtraConfigScreen extends Screen {
     private final Screen parent;
     private ButtonWidget sneakToggle;
     private ButtonWidget outlineToggle;
+    private ButtonWidget itemGlowToggle;
+    private ButtonWidget colorTargetButton;
     private TextFieldWidget hexField;
+    private boolean editingItemGlowColor;
     private float hue;
     private float saturation;
     private float brightness;
@@ -37,27 +40,44 @@ public final class GTMExtraConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        updateColorState(GTMExtraConfig.getOutlineColor());
+        editingItemGlowColor = GTMExtraConfig.isItemGlowColorSelected();
+        updateColorState(currentColor());
         pickerX = width / 2 - 75;
-        pickerY = 115;
+        pickerY = 182;
 
         sneakToggle = addDrawableChild(ButtonWidget.builder(plainToggleText("gtm_extra.config.sneak", GTMExtraConfig.isSneakAnimationEnabled()), button -> {
                     GTMExtraConfig.setSneakAnimationEnabled(!GTMExtraConfig.isSneakAnimationEnabled());
                     button.setMessage(plainToggleText("gtm_extra.config.sneak", GTMExtraConfig.isSneakAnimationEnabled()));
                 })
-                .dimensions(width / 2 - 100, 55, 200, 20)
+                .dimensions(width / 2 - 100, 45, 200, 20)
                 .build());
         outlineToggle = addDrawableChild(ButtonWidget.builder(plainToggleText("gtm_extra.config.outline", GTMExtraConfig.isOutlineHighlighterEnabled()), button -> {
                     GTMExtraConfig.setOutlineHighlighterEnabled(!GTMExtraConfig.isOutlineHighlighterEnabled());
                     button.setMessage(plainToggleText("gtm_extra.config.outline", GTMExtraConfig.isOutlineHighlighterEnabled()));
                 })
-                .dimensions(width / 2 - 100, 85, 200, 20)
+                .dimensions(width / 2 - 100, 72, 200, 20)
+                .build());
+        itemGlowToggle = addDrawableChild(ButtonWidget.builder(plainToggleText("gtm_extra.config.item_glow", GTMExtraConfig.isItemGlowEnabled()), button -> {
+                    GTMExtraConfig.setItemGlowEnabled(!GTMExtraConfig.isItemGlowEnabled());
+                    button.setMessage(plainToggleText("gtm_extra.config.item_glow", GTMExtraConfig.isItemGlowEnabled()));
+                })
+                .dimensions(width / 2 - 100, 99, 200, 20)
+                .build());
+
+        colorTargetButton = addDrawableChild(ButtonWidget.builder(colorTargetText(), button -> {
+                    editingItemGlowColor = !editingItemGlowColor;
+                    GTMExtraConfig.setItemGlowColorSelected(editingItemGlowColor);
+                    updateColorState(currentColor());
+                    hexField.setText(formatHex(currentColor()));
+                    button.setMessage(colorTargetText());
+                })
+                .dimensions(width / 2 - 100, 155, 200, 20)
                 .build());
 
         hexField = addDrawableChild(new TextFieldWidget(textRenderer, pickerX, pickerY + PICKER_HEIGHT + 14, PICKER_WIDTH + HUE_WIDTH + 10, 20,
                 Text.translatable("gtm_extra.config.hex")));
         hexField.setMaxLength(7);
-        hexField.setText(formatHex(GTMExtraConfig.getOutlineColor()));
+        hexField.setText(formatHex(currentColor()));
         hexField.setChangedListener(this::updateColorFromHex);
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
@@ -75,8 +95,9 @@ public final class GTMExtraConfigScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
         super.render(context, mouseX, mouseY, deltaTicks);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 20, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.sneak.description"), width / 2, 42, 0xA0A0A0);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.outline.description"), width / 2, 107, 0xA0A0A0);
+        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.sneak.description"), width / 2, 33, 0xA0A0A0);
+        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.outline.description"), width / 2, 124, 0xA0A0A0);
+        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.item_glow.description"), width / 2, 137, 0xA0A0A0);
         renderColorPicker(context);
         context.drawTextWithShadow(textRenderer, Text.translatable("gtm_extra.config.color"), pickerX, pickerY - 12, 0xFFFFFF);
         Text creator = Text.literal("Made By \"Yuq0\"");
@@ -140,7 +161,7 @@ public final class GTMExtraConfigScreen extends Screen {
 
     private void applyPickerColor() {
         int color = hsvToRgb(hue, saturation, brightness);
-        GTMExtraConfig.setOutlineColor(color);
+        setCurrentColor(color);
         hexField.setText(formatHex(color));
     }
 
@@ -151,7 +172,7 @@ public final class GTMExtraConfigScreen extends Screen {
         }
 
         int color = Integer.parseInt(hex, 16);
-        GTMExtraConfig.setOutlineColor(color);
+        setCurrentColor(color);
         updateColorState(color);
     }
 
@@ -173,6 +194,23 @@ public final class GTMExtraConfigScreen extends Screen {
         } else {
             hue = ((red - green) / difference + 4.0F) / 6.0F;
         }
+    }
+
+    private int currentColor() {
+        return editingItemGlowColor ? GTMExtraConfig.getItemGlowColor() : GTMExtraConfig.getOutlineColor();
+    }
+
+    private void setCurrentColor(int color) {
+        if (editingItemGlowColor) {
+            GTMExtraConfig.setItemGlowColor(color);
+        } else {
+            GTMExtraConfig.setOutlineColor(color);
+        }
+    }
+
+    private Text colorTargetText() {
+        return Text.translatable("gtm_extra.config.color_target", Text.translatable(editingItemGlowColor
+                ? "gtm_extra.config.item_glow.short" : "gtm_extra.config.outline.short"));
     }
 
     private static Text plainToggleText(String key, boolean enabled) {

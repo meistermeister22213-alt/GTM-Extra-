@@ -4,6 +4,11 @@
   "gtm_extra.config.sneak.description": "Shows the crouching model pose while the local player is flying and sneaking.",
   "gtm_extra.config.outline": "Outline Highlighter [Experimental]: %s",
   "gtm_extra.config.outline.description": "Experimental. The outline is hidden if any block lies between the camera and player.",
-  "gtm_extra.config.color": "Outline color",
+  "gtm_extra.config.item_glow": "Item Glow [Experimental]: %s",
+  "gtm_extra.config.item_glow.description": "Highlights selected dropped items only when no block obstructs the view.",
+  "gtm_extra.config.item_glow.short": "Item Glow",
+  "gtm_extra.config.outline.short": "Outline Highlighter",
+  "gtm_extra.config.color_target": "Color: %s",
+  "gtm_extra.config.color": "Color",
   "gtm_extra.config.hex": "Hex color"
 }

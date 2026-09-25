@@ -6,6 +6,7 @@
   "client": [
     "CameraAccessor",
     "EntityOutlineMixin",
+    "ItemGlowLabelMixin",
     "PlayerEntityRendererMixin"
   ],
   "injectors": {
