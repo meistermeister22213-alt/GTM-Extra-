@@ -15,18 +15,18 @@ import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /** Persistent, client-only settings for GTM Extra. */
 public final class GTMExtraConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("gtm-extra.json");
-    private static boolean sneakAnimationEnabled = true;
-    private static boolean outlineHighlighterEnabled;
-    private static int outlineColor = 0xFF0095;
+    private static final Map<String, ItemOptions> ITEM_WHITELIST = createDefaultWhitelist();
     private static boolean itemGlowEnabled;
     private static int itemGlowColor = 0xFF8C00;
-    private static boolean itemGlowColorSelected;
 
     private GTMExtraConfig() {
     }
@@ -39,42 +39,12 @@ public final class GTMExtraConfig {
 
         try (Reader reader = Files.newBufferedReader(FILE, StandardCharsets.UTF_8)) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            sneakAnimationEnabled = getBoolean(root, "sneakAnimationEnabled", true);
-            outlineHighlighterEnabled = getBoolean(root, "outlineHighlighterEnabled", false);
-            outlineColor = getColor(root, "outlineColor", outlineColor);
             itemGlowEnabled = getBoolean(root, "itemGlowEnabled", false);
             itemGlowColor = getColor(root, "itemGlowColor", itemGlowColor);
-            itemGlowColorSelected = getBoolean(root, "itemGlowColorSelected", false);
+            loadItemWhitelist(root);
         } catch (Exception exception) {
             GTMExtra.LOGGER.warn("Could not read GTM Extra's client configuration", exception);
         }
-    }
-
-    public static boolean isSneakAnimationEnabled() {
-        return sneakAnimationEnabled;
-    }
-
-    public static void setSneakAnimationEnabled(boolean enabled) {
-        sneakAnimationEnabled = enabled;
-        save();
-    }
-
-    public static boolean isOutlineHighlighterEnabled() {
-        return outlineHighlighterEnabled;
-    }
-
-    public static void setOutlineHighlighterEnabled(boolean enabled) {
-        outlineHighlighterEnabled = enabled;
-        save();
-    }
-
-    public static int getOutlineColor() {
-        return outlineColor;
-    }
-
-    public static void setOutlineColor(int rgb) {
-        outlineColor = rgb & 0xFFFFFF;
-        save();
     }
 
     public static boolean isItemGlowEnabled() {
@@ -86,6 +56,36 @@ public final class GTMExtraConfig {
         save();
     }
 
+    public static List<String> getWhitelistedItemIds() {
+        return List.copyOf(ITEM_WHITELIST.keySet());
+    }
+
+    public static boolean isItemGlowAllowed(String itemId) {
+        ItemOptions options = ITEM_WHITELIST.get(itemId);
+        return options != null && options.glow;
+    }
+
+    public static void setItemGlowAllowed(String itemId, boolean allowed) {
+        ItemOptions options = ITEM_WHITELIST.get(itemId);
+        if (options != null) {
+            options.glow = allowed;
+            save();
+        }
+    }
+
+    public static boolean isItemNameAllowed(String itemId) {
+        ItemOptions options = ITEM_WHITELIST.get(itemId);
+        return options != null && options.name;
+    }
+
+    public static void setItemNameAllowed(String itemId, boolean allowed) {
+        ItemOptions options = ITEM_WHITELIST.get(itemId);
+        if (options != null) {
+            options.name = allowed;
+            save();
+        }
+    }
+
     public static int getItemGlowColor() {
         return itemGlowColor;
     }
@@ -95,23 +95,11 @@ public final class GTMExtraConfig {
         save();
     }
 
-    public static boolean isItemGlowColorSelected() {
-        return itemGlowColorSelected;
-    }
-
-    public static void setItemGlowColorSelected(boolean selected) {
-        itemGlowColorSelected = selected;
-        save();
-    }
-
     public static void save() {
         JsonObject root = new JsonObject();
-        root.addProperty("sneakAnimationEnabled", sneakAnimationEnabled);
-        root.addProperty("outlineHighlighterEnabled", outlineHighlighterEnabled);
-        root.addProperty("outlineColor", String.format("#%06X", outlineColor));
         root.addProperty("itemGlowEnabled", itemGlowEnabled);
         root.addProperty("itemGlowColor", String.format("#%06X", itemGlowColor));
-        root.addProperty("itemGlowColorSelected", itemGlowColorSelected);
+        root.add("itemWhitelist", GSON.toJsonTree(ITEM_WHITELIST));
 
         Path temporaryFile = FILE.resolveSibling(FILE.getFileName() + ".tmp");
         try {
@@ -144,5 +132,41 @@ public final class GTMExtraConfig {
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private static Map<String, ItemOptions> createDefaultWhitelist() {
+        Map<String, ItemOptions> whitelist = new LinkedHashMap<>();
+        whitelist.put("jetpack", new ItemOptions());
+        whitelist.put("katana", new ItemOptions());
+        whitelist.put("golf_club", new ItemOptions());
+        whitelist.put("wingsuit", new ItemOptions());
+        whitelist.put("chain_boots", new ItemOptions());
+        whitelist.put("kwons_booty_shorts", new ItemOptions());
+        return whitelist;
+    }
+
+    private static void loadItemWhitelist(JsonObject root) {
+        for (ItemOptions options : ITEM_WHITELIST.values()) {
+            options.glow = true;
+            options.name = true;
+        }
+        if (!root.has("itemWhitelist") || !root.get("itemWhitelist").isJsonObject()) {
+            return;
+        }
+        JsonObject savedWhitelist = root.getAsJsonObject("itemWhitelist");
+        savedWhitelist.entrySet().forEach(entry -> {
+            ItemOptions options = ITEM_WHITELIST.get(entry.getKey());
+            if (options == null || !entry.getValue().isJsonObject()) {
+                return;
+            }
+            JsonObject savedOptions = entry.getValue().getAsJsonObject();
+            options.glow = getBoolean(savedOptions, "glow", true);
+            options.name = getBoolean(savedOptions, "name", true);
+        });
+    }
+
+    private static final class ItemOptions {
+        private boolean glow = true;
+        private boolean name = true;
     }
 }

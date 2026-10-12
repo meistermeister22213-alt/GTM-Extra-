@@ -36,9 +36,12 @@ public final class ItemGlow {
     }
 
     public static boolean shouldGlow(Entity entity) {
-        return entity instanceof ItemEntity itemEntity
-                && GTMExtraConfig.isItemGlowEnabled()
-                && isNamedItem(itemEntity.getStack())
+        if (!(entity instanceof ItemEntity itemEntity) || !GTMExtraConfig.isItemGlowEnabled()) {
+            return false;
+        }
+        String itemId = getItemId(itemEntity.getStack());
+        return itemId != null
+                && GTMExtraConfig.isItemGlowAllowed(itemId)
                 && hasClearLineOfSight(entity);
     }
 
@@ -51,6 +54,10 @@ public final class ItemGlow {
     }
 
     public static Text getLabel(ItemStack stack) {
+        String itemId = getItemId(stack);
+        if (itemId == null || !GTMExtraConfig.isItemNameAllowed(itemId)) {
+            return null;
+        }
         Text itemName = getItemName(stack);
         if (itemName == null) {
             return null;
@@ -60,7 +67,11 @@ public final class ItemGlow {
 
     /** Only one visible item in a nearby group owns the shared label. */
     public static boolean shouldShowLabel(Entity entity) {
-        if (!(entity instanceof ItemEntity itemEntity) || !shouldGlow(entity)) {
+        if (!(entity instanceof ItemEntity itemEntity) || !GTMExtraConfig.isItemGlowEnabled()) {
+            return false;
+        }
+        String itemId = getItemId(itemEntity.getStack());
+        if (itemId == null || !GTMExtraConfig.isItemNameAllowed(itemId) || !hasClearLineOfSight(entity)) {
             return false;
         }
 
@@ -90,10 +101,14 @@ public final class ItemGlow {
             return cachedGroup;
         }
         double radiusSquared = LABEL_GROUP_RADIUS * LABEL_GROUP_RADIUS;
+        String itemId = getItemId(itemEntity.getStack());
+        if (itemId == null || !GTMExtraConfig.isItemNameAllowed(itemId)) {
+            return List.of(itemEntity);
+        }
         List<ItemEntity> nearby = new ArrayList<>(client.world.getEntitiesByClass(ItemEntity.class,
                 itemEntity.getBoundingBox().expand(LABEL_GROUP_RADIUS),
-                other -> isNamedItem(other.getStack())
-                        && other.getStack().isOf(itemEntity.getStack().getItem())
+                other -> itemId.equals(getItemId(other.getStack()))
+                        && GTMExtraConfig.isItemNameAllowed(itemId)
                         && other.squaredDistanceTo(itemEntity) <= radiusSquared
                         && hasClearLineOfSight(other)));
         if (!nearby.contains(itemEntity) && hasClearLineOfSight(itemEntity)) {
@@ -109,7 +124,7 @@ public final class ItemGlow {
             return false;
         }
         refreshFrameCache(client);
-        return VISIBILITY_CACHE.computeIfAbsent(entity.getId(), ignored -> OutlineHighlighter.hasClearLineOfSight(entity));
+        return VISIBILITY_CACHE.computeIfAbsent(entity.getId(), ignored -> LineOfSight.hasClearLineOfSight(entity));
     }
 
     private static void refreshFrameCache(MinecraftClient client) {
@@ -131,25 +146,51 @@ public final class ItemGlow {
         }
     }
 
-    private static boolean isNamedItem(ItemStack stack) {
-        return getItemName(stack) != null;
-    }
-
     private static Text getItemName(ItemStack stack) {
-        if (stack.isOf(Items.GOLDEN_CHESTPLATE)) {
+        String itemId = getItemId(stack);
+        if ("jetpack".equals(itemId)) {
             return styled("Jetpack", DARK_RED, true);
         }
-        if (stack.isOf(Items.DIAMOND_SWORD)) {
-            return styled("Melee", ORANGE, false);
+        if ("katana".equals(itemId)) {
+            return styled("Katana", ORANGE, false);
         }
-        if (stack.isOf(Items.ELYTRA)) {
+        if ("golf_club".equals(itemId)) {
+            return styled("Golf Club", ORANGE, false);
+        }
+        if ("wingsuit".equals(itemId)) {
             return styled("Wingsuit", RED, false);
         }
-        if (stack.isOf(Items.CHAINMAIL_BOOTS)) {
+        if ("chain_boots".equals(itemId)) {
             return styled("Chain Boots", DARK_RED, true);
         }
-        if (stack.isOf(Items.LEATHER_LEGGINGS) && stack.hasEnchantments()) {
+        if ("kwons_booty_shorts".equals(itemId)) {
             return styled("Kwon's Booty Shorts", PINK, true);
+        }
+        return null;
+    }
+
+    private static String getItemId(ItemStack stack) {
+        if (stack.isOf(Items.GOLDEN_CHESTPLATE)) {
+            return "jetpack";
+        }
+        if (stack.isOf(Items.DIAMOND_SWORD)) {
+            String customName = stack.getName().getString();
+            if (customName.equals("Katana")) {
+                return "katana";
+            }
+            if (customName.equals("Golf Club")) {
+                return "golf_club";
+            }
+            return null;
+        }
+        if (stack.isOf(Items.ELYTRA)) {
+            return "wingsuit";
+        }
+        if (stack.isOf(Items.CHAINMAIL_BOOTS)) {
+            return "chain_boots";
+        }
+        if (stack.isOf(Items.LEATHER_LEGGINGS) && stack.hasEnchantments()) {
+            return "kwons_booty_shorts";
         }
         return null;
     }

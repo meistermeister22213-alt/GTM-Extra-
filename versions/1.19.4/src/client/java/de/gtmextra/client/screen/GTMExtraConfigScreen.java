@@ -1,0 +1,220 @@
+package de.gtmextra.client.screen;
+
+import de.gtmextra.client.config.GTMExtraConfig;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.Text;
+
+import java.util.Locale;
+
+/**
+ * Starting point for the ModMenu configuration UI.
+ * Add future setting controls in {@link #init()} and persist them in a dedicated config class.
+ */
+public final class GTMExtraConfigScreen extends Screen {
+
+    private final Screen parent;
+    private ButtonWidget itemGlowToggle;
+    private ButtonWidget whitelistButton;
+    private TextFieldWidget hexField;
+    private float hue;
+    private float saturation;
+    private float brightness;
+
+    private int pickerX;
+    private int pickerY;
+    private static final int PICKER_WIDTH = 150;
+    private static final int PICKER_HEIGHT = 100;
+    private static final int HUE_WIDTH = 12;
+
+    public GTMExtraConfigScreen(Screen parent) {
+        super(Text.translatable("gtm_extra.config.title"));
+        this.parent = parent;
+    }
+
+    @Override
+    protected void init() {
+        updateColorState(currentColor());
+        pickerX = width / 2 - 75;
+        pickerY = 116;
+
+        itemGlowToggle = addDrawableChild(ButtonWidget.builder(plainToggleText("gtm_extra.config.item_glow", GTMExtraConfig.isItemGlowEnabled()), button -> {
+                    GTMExtraConfig.setItemGlowEnabled(!GTMExtraConfig.isItemGlowEnabled());
+                    button.setMessage(plainToggleText("gtm_extra.config.item_glow", GTMExtraConfig.isItemGlowEnabled()));
+                })
+                .dimensions(width / 2 - 100, 45, 200, 20)
+                .build());
+        whitelistButton = addDrawableChild(ButtonWidget.builder(Text.translatable("gtm_extra.whitelist.open"),
+                        button -> client.setScreen(new GTMExtraWhitelistScreen(this)))
+                .dimensions(width / 2 - 100, 82, 200, 20)
+                .build());
+
+        hexField = addDrawableChild(new TextFieldWidget(textRenderer, pickerX, pickerY + PICKER_HEIGHT + 14, PICKER_WIDTH + HUE_WIDTH + 10, 20,
+                Text.translatable("gtm_extra.config.hex")));
+        hexField.setMaxLength(7);
+        hexField.setText(formatHex(currentColor()));
+        hexField.setChangedListener(this::updateColorFromHex);
+
+        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
+                .dimensions(width / 2 - 100, height - 28, 200, 20)
+                .build());
+    }
+
+    @Override
+    public void close() {
+        GTMExtraConfig.save();
+        client.setScreen(parent);
+    }
+
+    @Override
+    public void render(MatrixStack matrices, int mouseX, int mouseY, float deltaTicks) {
+        renderBackground(matrices);
+        super.render(matrices, mouseX, mouseY, deltaTicks);
+        drawCentered(matrices, title, width / 2, 20, 0xFFFFFF);
+        drawCentered(matrices, Text.translatable("gtm_extra.config.item_glow.description"), width / 2, 69, 0xA0A0A0);
+        renderColorPicker(matrices);
+        textRenderer.drawWithShadow(matrices, colorTargetText(), pickerX, pickerY - 12, 0xFFFFFF);
+        Text creator = Text.literal("Made By \"Yuq0\"");
+        textRenderer.drawWithShadow(matrices, creator, width - textRenderer.getWidth(creator) - 8, height - 14, 0xA0A0A0);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && updatePicker((int) mouseX, (int) mouseY)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (button == 0 && updatePicker((int) mouseX, (int) mouseY)) {
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    private void renderColorPicker(MatrixStack matrices) {
+        int hueColor = hsvToRgb(hue, 1.0F, 1.0F);
+        for (int index = 0; index < PICKER_WIDTH; index++) {
+            float mix = (float) index / (PICKER_WIDTH - 1);
+            int topColor = mixColors(0xFFFFFF, hueColor, mix);
+            fillGradient(matrices, pickerX + index, pickerY, pickerX + index + 1, pickerY + PICKER_HEIGHT,
+                    0xFF000000 | topColor, 0xFF000000);
+        }
+
+        int hueX = pickerX + PICKER_WIDTH + 5;
+        for (int index = 0; index < PICKER_HEIGHT; index++) {
+            float currentHue = 1.0F - (float) index / (PICKER_HEIGHT - 1);
+            fill(matrices, hueX, pickerY + index, hueX + HUE_WIDTH, pickerY + index + 1, 0xFF000000 | hsvToRgb(currentHue, 1.0F, 1.0F));
+        }
+
+        int colorX = pickerX + Math.round(saturation * (PICKER_WIDTH - 1));
+        int colorY = pickerY + Math.round((1.0F - brightness) * (PICKER_HEIGHT - 1));
+        drawMarkerBorder(matrices, colorX - 2, colorY - 2, 4, 4, 0xFFFFFFFF);
+        int hueMarkerY = pickerY + Math.round((1.0F - hue) * (PICKER_HEIGHT - 1));
+        drawMarkerBorder(matrices, hueX - 1, hueMarkerY - 1, HUE_WIDTH + 2, 3, 0xFFFFFFFF);
+    }
+
+    private boolean updatePicker(int mouseX, int mouseY) {
+        if (mouseX >= pickerX && mouseX <= pickerX + PICKER_WIDTH && mouseY >= pickerY && mouseY <= pickerY + PICKER_HEIGHT) {
+            saturation = clamp((float) (mouseX - pickerX) / (PICKER_WIDTH - 1));
+            brightness = clamp(1.0F - (float) (mouseY - pickerY) / (PICKER_HEIGHT - 1));
+            applyPickerColor();
+            return true;
+        }
+
+        int hueX = pickerX + PICKER_WIDTH + 5;
+        if (mouseX >= hueX && mouseX <= hueX + HUE_WIDTH && mouseY >= pickerY && mouseY <= pickerY + PICKER_HEIGHT) {
+            hue = clamp(1.0F - (float) (mouseY - pickerY) / (PICKER_HEIGHT - 1));
+            applyPickerColor();
+            return true;
+        }
+        return false;
+    }
+
+    private void applyPickerColor() {
+        int color = hsvToRgb(hue, saturation, brightness);
+        setCurrentColor(color);
+        hexField.setText(formatHex(color));
+    }
+
+    private void updateColorFromHex(String value) {
+        String hex = value.startsWith("#") ? value.substring(1) : value;
+        if (hex.length() != 6 || !hex.matches("[0-9a-fA-F]{6}")) {
+            return;
+        }
+
+        int color = Integer.parseInt(hex, 16);
+        setCurrentColor(color);
+        updateColorState(color);
+    }
+
+    private void updateColorState(int rgb) {
+        float red = ((rgb >> 16) & 0xFF) / 255.0F;
+        float green = ((rgb >> 8) & 0xFF) / 255.0F;
+        float blue = (rgb & 0xFF) / 255.0F;
+        float maximum = Math.max(red, Math.max(green, blue));
+        float minimum = Math.min(red, Math.min(green, blue));
+        float difference = maximum - minimum;
+        brightness = maximum;
+        saturation = maximum == 0.0F ? 0.0F : difference / maximum;
+        if (difference == 0.0F) {
+            hue = 0.0F;
+        } else if (maximum == red) {
+            hue = ((green - blue) / difference + (green < blue ? 6.0F : 0.0F)) / 6.0F;
+        } else if (maximum == green) {
+            hue = ((blue - red) / difference + 2.0F) / 6.0F;
+        } else {
+            hue = ((red - green) / difference + 4.0F) / 6.0F;
+        }
+    }
+
+    private int currentColor() {
+        return GTMExtraConfig.getItemGlowColor();
+    }
+
+    private void setCurrentColor(int color) {
+        GTMExtraConfig.setItemGlowColor(color);
+    }
+
+    private Text colorTargetText() {
+        return Text.translatable("gtm_extra.config.color_target", Text.translatable("gtm_extra.config.item_glow.short"));
+    }
+
+    private static Text plainToggleText(String key, boolean enabled) {
+        return Text.translatable(key, Text.literal(enabled ? "On" : "Off"));
+    }
+
+    private static String formatHex(int color) {
+        return String.format(Locale.ROOT, "#%06X", color);
+    }
+
+    private static int hsvToRgb(float hue, float saturation, float brightness) {
+        return java.awt.Color.HSBtoRGB(hue, saturation, brightness) & 0xFFFFFF;
+    }
+
+    private static int mixColors(int first, int second, float progress) {
+        int red = Math.round(((first >> 16) & 0xFF) * (1.0F - progress) + ((second >> 16) & 0xFF) * progress);
+        int green = Math.round(((first >> 8) & 0xFF) * (1.0F - progress) + ((second >> 8) & 0xFF) * progress);
+        int blue = Math.round((first & 0xFF) * (1.0F - progress) + (second & 0xFF) * progress);
+        return red << 16 | green << 8 | blue;
+    }
+
+    private static float clamp(float value) {
+        return Math.max(0.0F, Math.min(1.0F, value));
+    }
+
+    private void drawCentered(MatrixStack matrices, Text text, int centerX, int y, int color) {
+        textRenderer.drawWithShadow(matrices, text, centerX - textRenderer.getWidth(text) / 2, y, color);
+    }
+
+    private static void drawMarkerBorder(MatrixStack matrices, int x, int y, int borderWidth, int borderHeight, int color) {
+        fill(matrices, x, y, x + borderWidth, y + 1, color);
+        fill(matrices, x, y + borderHeight - 1, x + borderWidth, y + borderHeight, color);
+        fill(matrices, x, y, x + 1, y + borderHeight, color);
+        fill(matrices, x + borderWidth - 1, y, x + borderWidth, y + borderHeight, color);
+    }
+}

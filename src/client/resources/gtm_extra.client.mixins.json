@@ -5,9 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "CameraAccessor",
-    "EntityOutlineMixin",
-    "ItemGlowLabelMixin",
-    "PlayerEntityRendererMixin"
+    "ItemGlowMixin",
+    "ItemGlowLabelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

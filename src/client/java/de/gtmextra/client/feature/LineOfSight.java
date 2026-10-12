@@ -1,46 +1,27 @@
 package de.gtmextra.client.feature;
 
-import de.gtmextra.client.config.GTMExtraConfig;
 import de.gtmextra.client.mixin.CameraAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
-/** Adds a player outline only when the camera-to-player-center path contains no blocks. */
-public final class OutlineHighlighter {
+/** Block-occlusion check shared by client-side highlighting features. */
+public final class LineOfSight {
 
-    private OutlineHighlighter() {
+    private LineOfSight() {
     }
 
-    public static boolean shouldHighlight(Entity entity) {
-        if (!(entity instanceof PlayerEntity player) || player.isInvisible() || !GTMExtraConfig.isOutlineHighlighterEnabled()) {
-            return false;
-        }
-
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || entity.getEntityWorld() != client.world || client.getCameraEntity() == null) {
-            return false;
-        }
-
-        return hasClearLineOfSight(entity);
-    }
-
-    /** Uses the same block-occluded camera ray for other client highlighting features. */
     public static boolean hasClearLineOfSight(Entity entity) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.world == null || entity.getEntityWorld() != client.world || client.getCameraEntity() == null) {
+        if (client.world == null || entity.getEntityWorld() != client.world || client.getCameraEntity() == null
+                || client.gameRenderer == null || client.gameRenderer.getCamera() == null) {
             return false;
         }
         Vec3d camera = ((CameraAccessor) client.gameRenderer.getCamera()).gtmExtra$getPosition();
         Vec3d target = entity.getBoundingBox().getCenter();
         return !crossesBlock(client, camera, target);
-    }
-
-    public static int getColor() {
-        return GTMExtraConfig.getOutlineColor();
     }
 
     private static boolean crossesBlock(MinecraftClient client, Vec3d start, Vec3d end) {

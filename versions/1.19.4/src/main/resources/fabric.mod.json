@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "gtm_extra",
+  "version": "${version}",
+  "name": "GTM Extra",
+  "description": "Additional features for GTM.",
+  "icon": "assets/gtm_extra/icon.png",
+  "authors": [
+    "Yuq0"
+  ],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "de.gtmextra.client.GTMExtraClient"
+    ],
+    "main": [
+      "de.gtmextra.GTMExtra"
+    ],
+    "modmenu": [
+      "de.gtmextra.client.compat.modmenu.GTMExtraModMenuApi"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "gtm_extra.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
